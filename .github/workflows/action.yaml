@@ -1,0 +1,19 @@
+name: action
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: install deps
+        run: |
+          sudo apt install tox
+          git clone git://github.com/mininet/mininet
+          pushd mininet
+          git checkout -b mininet-2.3.0 2.3.0
+          ./util/install.sh -nv
+          popd
+      - name: run test
+        run: |
+          sudo mn --switch ovs --test pingall
+          sudo tox
