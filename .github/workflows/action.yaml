@@ -7,7 +7,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: install deps
         run: |
-          sudo apt install -y tox tshark
+          sudo apt install -y tox tshark frr
           git clone git://github.com/mininet/mininet
           pushd mininet
           git checkout -b mininet-2.3.0 2.3.0
