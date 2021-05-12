@@ -9,37 +9,57 @@ def run():
     setLogLevel('info')
     net = Mininet()
 
-    h1 = net.addHost('h1', ip='192.168.0.1/24')
-    h2 = net.addHost('h2', ip='192.168.0.2/24')
+    r1 = net.addHost('r1', ip='192.168.0.1/24')
+    r2 = net.addHost('r2', ip='192.168.0.2/24')
 
-    net.addLink(h1, h2)
+    h1 = net.addHost('h1', ip='192.168.1.1/24')
+    h2 = net.addHost('h2', ip='192.168.1.2/24')
+    h3 = net.addHost('h3', ip='192.168.1.3/24')
+    h4 = net.addHost('h4', ip='192.168.1.4/24')
 
-    h1.cmd('ip link add vxlan0 type vxlan id 100 remote 192.168.0.2 '
-           'dstport 4789 dev h1-eth0')
-    h2.cmd('ip link add vxlan0 type vxlan id 100 remote 192.168.0.1 '
-           'dstport 4789 dev h2-eth0')
+    net.addLink(r1, r2)
+    net.addLink(r1, h1)
+    net.addLink(r1, h2)
+    net.addLink(r2, h3)
+    net.addLink(r2, h4)
 
-    h1.cmd('ip link set vxlan0 up')
-    h2.cmd('ip link set vxlan0 up')
+    r1.cmd('ip link add vxlan0 type vxlan id 100 remote 192.168.0.2 '
+           'dstport 4789 dev r1-eth0')
+    r2.cmd('ip link add vxlan0 type vxlan id 100 remote 192.168.0.1 '
+           'dstport 4789 dev r2-eth0')
 
-    h1.cmd('ip address add 192.168.1.1/24 dev vxlan0')
-    h2.cmd('ip address add 192.168.1.2/24 dev vxlan0')
+    r1.cmd('ip link add br0 type bridge')
+    r1.cmd('ip link set dev vxlan0 master br0')
+    r1.cmd('ip link set dev r1-eth1 master br0')
+    r1.cmd('ip link set dev r1-eth2 master br0')
+
+    r2.cmd('ip link add br0 type bridge')
+    r2.cmd('ip link set dev vxlan0 master br0')
+    r2.cmd('ip link set dev r2-eth2 master br0')
+    r2.cmd('ip link set dev r2-eth1 master br0')
+
+    r1.cmd('ip link set vxlan0 up')
+    r2.cmd('ip link set vxlan0 up')
+    r1.cmd('ip link set br0 up')
+    r2.cmd('ip link set br0 up')
 
     net.start()
 
-    h2.cmd('tcpdump -i h2-eth0 -w vxlan.pcap &')
+    r2.cmd('tcpdump -i r2-eth0 -w vxlan.pcap &')
     time.sleep(1)
 
-    h1.cmdPrint('ping 192.168.1.2 -c 1')  # send ping in the overlay network
+    h1.cmdPrint('ping 192.168.1.4 -c 1')  # send ping in the overlay network
     time.sleep(1)
 
-    h2.cmd('pkill tcpdump')
+    r2.cmd('pkill tcpdump')
     time.sleep(1)
 
-    h2.cmdPrint('tshark -Y "icmp && ip.src==192.168.1.1" -r ./vxlan.pcap  -V')
-    h2.cmdPrint('rm vxlan.pcap')
+    r2.cmdPrint('tshark -Y "icmp && ip.src==192.168.1.1" -r ./vxlan.pcap  -V')
+    r2.cmdPrint('rm vxlan.pcap')
+
+    loss_rate = net.ping(hosts=[h1, h2, h3, h4])
     net.stop()
-    return 0
+    return loss_rate
 
 
 if __name__ == '__main__':
