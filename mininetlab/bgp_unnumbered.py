@@ -5,12 +5,15 @@ from mininet.log import setLogLevel
 import time
 
 frr_conf = '''
+frr defaults datacenter
+!
 hostname {name}
 password zebra
 !
 router bgp {asnum}
  bgp router-id  {router_id}
  bgp bestpath as-path multipath-relax
+ no bgp network import-check
  neighbor h1-eth0 interface remote-as external
  neighbor h2-eth0 interface remote-as external
  address-family ipv4 unicast
