@@ -224,14 +224,13 @@ def run():
     leaf1.cmdPrint('vtysh -c "show evpn vni"')
     leaf1.cmdPrint('vtysh -c "show evpn mac vni all"')
     leaf1.cmdPrint('ip route')
+    leaf1.cmdPrint('ip route show table 100')
+    leaf1.cmdPrint('ip route show table 200')
 
     loss_rate = net.ping(hosts=[host1, host2, host3, host4]) \
         + net.ping(hosts=[host5, host6, host7, host8])
 
-    host1.cmdPrint('ping -c 1 10.200.2.2')
-    assert "100% packet loss" in host1.cmd('ping -c 1 10.200.2.2')
-    host1.cmdPrint('ping -c 1 10.200.2.3')
-    assert "100% packet loss" in host1.cmd('ping -c 1 10.200.2.3')
+    assert net.ping(hosts=[host1, host5]) == 100.0
 
     for h in [spine, leaf1, leaf2]:
         h.cmd("/usr/lib/frr/frrinit.sh stop")
