@@ -154,6 +154,8 @@ def run():
 
         # vrf100(tenant #100)
         h.cmd('ip link add vrf100 type vrf table 100')
+        h.cmd('ip route add table 100 unreachable default metric 4278198272')
+        h.cmd('sysctl -w net.ipv4.conf.vrf100.rp_filter=0')
         h.cmd('ip link set vrf100 up')
         h.cmd('ip link set br100 master vrf100')  # l3vni
         h.cmd('ip link set br101 master vrf100')  # l2vni
@@ -191,6 +193,8 @@ def run():
 
         # vrf200(tenant #200)
         h.cmd('ip link add vrf200 type vrf table 200')
+        h.cmd('ip route add table 200 unreachable default metric 4278198272')
+        h.cmd('sysctl -w net.ipv4.conf.vrf200.rp_filter=0')
         h.cmd('ip link set vrf200 up')
         h.cmd('ip link set br200 master vrf200')  # l3vni
         h.cmd('ip link set br201 master vrf200')  # l2vni
@@ -198,6 +202,15 @@ def run():
 
     for h in [spine, leaf1, leaf2]:
         h.cmd('sysctl -w net.ipv4.ip_forward=1')
+        h.cmd('sysctl -w net.ipv4.tcp_l3mdev_accept=1')
+        h.cmd('sysctl -w net.ipv4.udp_l3mdev_accept=1')
+        h.cmd('sysctl -w net.ipv4.conf.default.rp_filter=0')
+        h.cmd('sysctl -w net.ipv4.conf.all.rp_filter=0')
+        h.cmd('sysctl -w net.ipv4.conf.default.arp_accept=0')
+        h.cmd('sysctl -w net.ipv4.conf.default.arp_announce=2')
+        h.cmd('sysctl -w net.ipv4.conf.default.arp_filter=0')
+        h.cmd('sysctl -w net.ipv4.conf.default.arp_ignore=1')
+        h.cmd('sysctl -w net.ipv4.conf.default.arp_notify=1')
         put_file(h, "/etc/frr/daemons", daemons)
         put_file(h, "/etc/frr/vtysh.conf", vtysh_conf)
         put_file(h, "/etc/frr/frr.conf", frr_conf, name=h.name,
@@ -209,6 +222,7 @@ def run():
     leaf1.cmdPrint('vtysh -c "show ip bgp"')
     leaf1.cmdPrint('vtysh -c "show ip bgp l2vpn evpn"')
     leaf1.cmdPrint('vtysh -c "show evpn vni"')
+    leaf1.cmdPrint('vtysh -c "show evpn mac vni all"')
     leaf1.cmdPrint('ip route')
 
     loss_rate = net.ping(hosts=[host1, host2, host3, host4]) \
