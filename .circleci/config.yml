@@ -1,0 +1,11 @@
+version: 2
+jobs:
+  build:
+    machine: true
+    image: ubuntu-2004:202010-01
+    steps:
+      - checkout
+      - run: git clone git://github.com/mininet/mininet
+      - run: pushd mininet && git checkout -b mininet-2.3.0 2.3.0 && ./util/install.sh -nv && popd
+      - run: sudo mn --switch ovs --test pingall
+      - run: sudo tox
