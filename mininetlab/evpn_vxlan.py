@@ -5,6 +5,8 @@ from mininet.log import setLogLevel
 import time
 
 frr_conf = '''
+frr defaults datacenter
+!
 hostname {name}
 password zebra
 !
@@ -19,6 +21,7 @@ exit-vrf
 router bgp {asnum}
  bgp router-id  {router_id}
  bgp bestpath as-path multipath-relax
+ no bgp network import-check
  neighbor fabric peer-group
  neighbor fabric remote-as external
  neighbor {name}-eth0 interface peer-group fabric
@@ -33,11 +36,13 @@ router bgp {asnum}
  exit-address-family
 !
 router bgp {asnum} vrf vrf100
+ no bgp network import-check
  address-family l2vpn evpn
   advertise ipv4 unicast
  exit-address-family
 !
 router bgp {asnum} vrf vrf200
+ no bgp network import-check
  address-family l2vpn evpn
   advertise ipv4 unicast
  exit-address-family
