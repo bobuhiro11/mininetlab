@@ -85,20 +85,20 @@ def run():
                         privateDirs=privateDirs, asnum=65003)
 
     # tenant #100, subnet #1
-    host1 = net.addHost('host1', ip='10.0.1.2/24', mac='10:00:10:00:01:02')
-    host2 = net.addHost('host2', ip='10.0.1.3/24', mac='10:00:10:00:01:03')
+    host1 = net.addHost('host1', ip='10.100.1.2/24', mac='00:00:00:01:01:02')
+    host2 = net.addHost('host2', ip='10.100.1.3/24', mac='00:00:00:01:01:03')
 
     # tenant #100, subnet #2
-    host3 = net.addHost('host3', ip='10.0.2.2/24', mac='10:00:10:00:02:02')
-    host4 = net.addHost('host4', ip='10.0.2.3/24', mac='10:00:10:00:02:03')
+    host3 = net.addHost('host3', ip='10.100.2.2/24', mac='00:00:00:01:02:02')
+    host4 = net.addHost('host4', ip='10.100.2.3/24', mac='00:00:00:01:02:03')
 
     # tenant #200, subnet #1
-    host5 = net.addHost('host5', ip='10.0.1.2/24', mac='20:00:10:00:01:02')
-    host6 = net.addHost('host6', ip='10.0.1.3/24', mac='20:00:10:00:01:03')
+    host5 = net.addHost('host5', ip='10.200.1.2/24', mac='00:00:00:02:01:02')
+    host6 = net.addHost('host6', ip='10.200.1.3/24', mac='00:00:00:02:01:03')
 
-    # tenant #200, subnet #3
-    host7 = net.addHost('host7', ip='10.0.3.2/24', mac='20:00:10:00:03:02')
-    host8 = net.addHost('host8', ip='10.0.3.3/24', mac='20:00:10:00:03:03')
+    # tenant #200, subnet #2
+    host7 = net.addHost('host7', ip='10.200.2.2/24', mac='00:00:00:02:02:02')
+    host8 = net.addHost('host8', ip='10.200.2.3/24', mac='00:00:00:02:02:03')
 
     net.addLink(spine, leaf1)
     net.addLink(spine, leaf2)
@@ -113,14 +113,14 @@ def run():
 
     net.start()
 
-    host1.cmd('ip route add default via 10.0.1.1 dev host1-eth0')
-    host2.cmd('ip route add default via 10.0.1.1 dev host2-eth0')
-    host3.cmd('ip route add default via 10.0.2.1 dev host3-eth0')
-    host4.cmd('ip route add default via 10.0.2.1 dev host4-eth0')
-    host5.cmd('ip route add default via 10.0.1.1 dev host5-eth0')
-    host6.cmd('ip route add default via 10.0.1.1 dev host6-eth0')
-    host7.cmd('ip route add default via 10.0.3.1 dev host7-eth0')
-    host8.cmd('ip route add default via 10.0.3.1 dev host8-eth0')
+    host1.cmd('ip route add default via 10.100.1.1 dev host1-eth0')
+    host2.cmd('ip route add default via 10.100.1.1 dev host2-eth0')
+    host3.cmd('ip route add default via 10.100.2.1 dev host3-eth0')
+    host4.cmd('ip route add default via 10.100.2.1 dev host4-eth0')
+    host5.cmd('ip route add default via 10.200.1.1 dev host5-eth0')
+    host6.cmd('ip route add default via 10.200.1.1 dev host6-eth0')
+    host7.cmd('ip route add default via 10.200.2.1 dev host7-eth0')
+    host8.cmd('ip route add default via 10.200.2.1 dev host8-eth0')
 
     # setup tenant #100
     for h in [leaf1, leaf2]:
@@ -132,7 +132,7 @@ def run():
         h.cmd('ip link set vxlan101 up')
         h.cmd('ip link set vxlan101 master br101')
         h.cmd('ip link set {}-eth1 master br101'.format(h.name))
-        h.cmd('ip addr add 10.0.1.1/24 dev br101')
+        h.cmd('ip addr add 10.100.1.1/24 dev br101')
 
         # br102 for l2vni(tenant #100, subnet #2)
         h.cmd('ip link add br102 type bridge')
@@ -142,7 +142,7 @@ def run():
         h.cmd('ip link set vxlan102 up')
         h.cmd('ip link set vxlan102 master br102')
         h.cmd('ip link set {}-eth2 master br102'.format(h.name))
-        h.cmd('ip addr add 10.0.2.1/24 dev br102')
+        h.cmd('ip addr add 10.100.2.1/24 dev br102')
 
         # br100 for l3vni(tenant #100)
         h.cmd('ip link add br100 type bridge')
@@ -171,17 +171,17 @@ def run():
         h.cmd('ip link set vxlan201 up')
         h.cmd('ip link set vxlan201 master br201')
         h.cmd('ip link set {}-eth3 master br201'.format(h.name))
-        h.cmd('ip addr add 10.0.1.1/24 dev br201')
+        h.cmd('ip addr add 10.200.1.1/24 dev br201')
 
-        # br202 for l2vni(tenant #200, subnet #3)
-        h.cmd('ip link add br203 type bridge')
-        h.cmd('ip link set br203 up')
-        h.cmd('ip link add vxlan203 type vxlan id 203 local {} dstport 4789 '
+        # br202 for l2vni(tenant #200, subnet #2)
+        h.cmd('ip link add br202 type bridge')
+        h.cmd('ip link set br202 up')
+        h.cmd('ip link add vxlan202 type vxlan id 202 local {} dstport 4789 '
               'nolearning'.format(h.IP()))
-        h.cmd('ip link set vxlan203 up')
-        h.cmd('ip link set vxlan203 master br203')
-        h.cmd('ip link set {}-eth4 master br203'.format(h.name))
-        h.cmd('ip addr add 10.0.3.1/24 dev br203')
+        h.cmd('ip link set vxlan202 up')
+        h.cmd('ip link set vxlan202 master br202')
+        h.cmd('ip link set {}-eth4 master br202'.format(h.name))
+        h.cmd('ip addr add 10.200.2.1/24 dev br202')
 
         # br200 for l3vni(tenant #200)
         h.cmd('ip link add br200 type bridge')
@@ -198,7 +198,7 @@ def run():
         h.cmd('ip link set vrf200 up')
         h.cmd('ip link set br200 master vrf200')  # l3vni
         h.cmd('ip link set br201 master vrf200')  # l2vni
-        h.cmd('ip link set br203 master vrf200')  # l2vni
+        h.cmd('ip link set br202 master vrf200')  # l2vni
 
     for h in [spine, leaf1, leaf2]:
         h.cmd('sysctl -w net.ipv4.ip_forward=1')
@@ -228,10 +228,10 @@ def run():
     loss_rate = net.ping(hosts=[host1, host2, host3, host4]) \
         + net.ping(hosts=[host5, host6, host7, host8])
 
-    host1.cmdPrint('ping -c 1 10.0.3.2')
-    assert "100% packet loss" in host1.cmd('ping -c 1 10.0.3.2')
-    host1.cmdPrint('ping -c 1 10.0.2.2')
-    assert "0% packet loss" in host1.cmd('ping -c 1 10.0.2.2')
+    host1.cmdPrint('ping -c 1 10.200.2.2')
+    assert "100% packet loss" in host1.cmd('ping -c 1 10.200.2.2')
+    host1.cmdPrint('ping -c 1 10.200.2.3')
+    assert "100% packet loss" in host1.cmd('ping -c 1 10.200.2.3')
 
     for h in [spine, leaf1, leaf2]:
         h.cmd("/usr/lib/frr/frrinit.sh stop")
