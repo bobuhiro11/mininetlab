@@ -16,5 +16,5 @@ jobs:
           popd
       - name: run test
         run: |
-          sudo mn --switch ovs --test pingall
-          sudo tox
+          sudo -E mn --switch ovs --test pingall
+          sudo -E tox
