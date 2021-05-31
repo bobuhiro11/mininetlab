@@ -1,2 +1,2 @@
 mock
-git+https://github.com/mininet/mininet@2.3.0#egg=package-two
+git+https://github.com/mininet/mininet@2.3.0#egg=mininet
