@@ -1,6 +1,6 @@
 # mininetlab
 
-A set of mininet scripts to simulate multi-node frr, bgp, evpn, vxlan, etc.
+A set of mininet scripts to simulate multi-node frr, bgp, evpn, vxlan, p4, etc.
 
 
 ## Environment
