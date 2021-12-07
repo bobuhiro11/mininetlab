@@ -7,18 +7,42 @@ jobs:
       - uses: actions/checkout@v2
       - name: install deps
         run: |
+          set -x
           sudo add-apt-repository -y ppa:dreibh/ppa
           sudo apt update
-          sudo apt install -y tox tshark frr p4lang-p4c clang linux-headers-$(uname -r) bpfcc-tools bcc
+          sudo apt install -y tox tshark frr p4lang-p4c clang linux-headers-$(uname -r) bpfcc-tools bcc libnuma-dev
           sudo ln -s /usr/include/asm-generic /usr/include/asm
           sudo pip install tox-pip-version
-          git clone git://github.com/mininet/mininet
+
+          # install mininet
+          git clone git://github.com/mininet/mininet -b 2.3.0 --depth 1
           wget https://raw.githubusercontent.com/p4lang/behavioral-model/13d7267/mininet/p4_mininet.py
           pushd mininet
-          git checkout -b mininet-2.3.0 2.3.0
-          ./util/install.sh -nv
+          ./util/install.sh -n
+          popd
+
+          # install libbpf
+          grep CONFIG_BPF=y /boot/config-$(uname -r)
+          grep CONFIG_BPF_SYSCALL=y /boot/config-$(uname -r)
+          grep CONFIG_XDP_SOCKETS=y /boot/config-$(uname -r)
+          git clone git://git.kernel.org/pub/scm/linux/kernel/git/bpf/bpf-next.git -b v5.15 --depth 1
+          pushd ./bpf-next/tools/lib/bpf
+          sudo make install
+          sudo sh -c "echo /usr/local/lib64 >> /etc/ld.so.conf"
+          sudo ldconfig
+          popd
+
+          # install ovs with afxdp
+          git clone https://github.com/openvswitch/ovs.git -b v2.16.1 --depth 1
+          pushd ovs
+          ./boot.sh
+          ./configure --enable-afxdp
+          make -j $(nproc)
+          sudo make install
           popd
       - name: run test
         run: |
+          (cd ./ovs && sudo make check-afxdp TESTSUITEFLAGS='1 3')
+          sudo /usr/local/share/openvswitch/scripts/ovs-ctl start
           sudo -E mn --switch ovs --test pingall
           sudo -E tox
