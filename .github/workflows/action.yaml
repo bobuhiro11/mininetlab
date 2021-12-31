@@ -36,7 +36,7 @@ jobs:
           git clone https://github.com/openvswitch/ovs.git -b v2.16.1 --depth 1
           pushd ovs
           ./boot.sh
-          ./configure --enable-afxdp
+          ./configure --enable-afxdp --with-debug
           make -j $(nproc)
           sudo make install
           popd
