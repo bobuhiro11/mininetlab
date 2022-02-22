@@ -1,7 +1,6 @@
-# mininetlab
+# mininetlab [![action](https://github.com/bobuhiro11/mininetlab/actions/workflows/action.yaml/badge.svg)](https://github.com/bobuhiro11/mininetlab/actions/workflows/action.yaml)
 
 A set of mininet scripts to simulate multi-node frr, bgp, evpn, vxlan, p4, xdp, etc.
-
 
 ## Environment
 
