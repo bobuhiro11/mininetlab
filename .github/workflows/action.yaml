@@ -1,5 +1,10 @@
 name: action
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron:  '0 0 * * *'
+  pull_request:
 jobs:
   test:
     runs-on: ubuntu-20.04
@@ -15,7 +20,7 @@ jobs:
           sudo pip install tox-pip-version
 
           # install mininet
-          git clone git://github.com/mininet/mininet -b 2.3.0 --depth 1
+          git clone https://github.com/mininet/mininet.git -b 2.3.0 --depth 1
           wget https://raw.githubusercontent.com/p4lang/behavioral-model/13d7267/mininet/p4_mininet.py
           pushd mininet
           ./util/install.sh -n
