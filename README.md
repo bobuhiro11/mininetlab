@@ -4,7 +4,7 @@ A set of mininet scripts to simulate multi-node frr, bgp, evpn, vxlan, p4, xdp, 
 
 ## Environment
 
-- Ubuntu 20.04 LTS
+- Ubuntu 22.04 LTS
 - mininet 2.3.0
 
 See [action.yaml](https://github.com/bobuhiro11/mininetlab/blob/main/.github/workflows/action.yaml) for more detail.
