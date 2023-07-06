@@ -18,12 +18,17 @@ router bgp {asnum}
  no bgp network import-check
  no bpp ebgp-requires-policy
  neighbor {name}-eth0 interface remote-as external
+ neighbor {name}-eth0 interface capability extended-nexthop
  !
  segment-routing srv6
    locator default
  !
  address-family ipv4 vpn
-  neighbor {name}-eth0 activate
+  neighbor {name}-eth0 interface activate
+ exit-address-family
+ !
+ address-family ipv6 unicast
+   {locator}
  exit-address-family
 !
 router bgp {asnum} vrf vrf10
@@ -42,10 +47,10 @@ segment-routing
     locators
       locator default
         prefix {locator}
-      exit
-    exit
-  exit
-exit
+      !
+    !
+  !
+!
 !
 line vty
 !
@@ -58,6 +63,7 @@ service integrated-vtysh-config
 
 daemons = '''
 bgpd=yes
+zebra=yes
 
 vtysh_enable=yes
 zebra_options="  -A 127.0.0.1 -s 90000000"
@@ -86,6 +92,7 @@ def run():
 
     # tenant #10
     c11 = net.addHost('c11', ip='192.168.1.1/24')
+    c21 = net.addHost('c11', ip='192.168.2.1/24')
     # host2 = net.addHost('host2', ip='10.0.1.3/24', mac='10:00:10:00:01:03')
 
     # # tenant #100, subnet #2
@@ -112,6 +119,7 @@ def run():
     # net.addLink(leaf2, host8)
     net.addLink(r1, r2)
     net.addLink(r1, c11)
+    net.addLink(r2, c21)
 
     net.start()
 
@@ -132,7 +140,10 @@ def run():
         # add GW
         r.cmd('ip link set {}-eth1 master vrf10'.format(r.name))
         r.cmd('ip link set {}-eth1 up'.format(r.name))
-        r.cmd('ip addr add 192.168.1.254/24 dev {}-eth1'.format(r.name))
+        if r.name == "r1":
+            r.cmd('ip addr add 192.168.1.254/24 dev {}-eth1'.format(r.name))
+        else:
+            r.cmd('ip addr add 192.168.2.254/24 dev {}-eth1'.format(r.name))
 
     # # setup tenant #100
     # for h in [leaf1, leaf2]:
@@ -236,6 +247,9 @@ def run():
     r1.cmdPrint('vtysh -c "show bgp summary"')
     r1.cmdPrint('vtysh -c "show segment-routing srv6 locator"')
     r1.cmdPrint('vtysh -c "show bgp ipv4 vpn"')
+    r1.cmdPrint('vtysh -c "show bgp segment-routing srv6"')
+    r1.cmdPrint('vtysh -c "show ip route vrf vrf10"')
+    r2.cmdPrint('vtysh -c "show ip route vrf vrf10"')
     CLI(net)
     # leaf1.cmdPrint('vtysh -c "show ip bgp"')
     # leaf1.cmdPrint('vtysh -c "show ip bgp l2vpn evpn"')
