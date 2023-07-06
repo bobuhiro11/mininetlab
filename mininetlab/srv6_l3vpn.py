@@ -12,6 +12,16 @@ log file /var/log/frr/frr.log debug
 hostname {name}
 password zebra
 !
+segment-routing
+  srv6
+    locators
+      locator default
+        prefix {locator}
+      !
+    !
+  !
+!
+!
 router bgp {asnum}
  bgp router-id  {router_id}
  bgp bestpath as-path multipath-relax
@@ -41,16 +51,6 @@ router bgp {asnum} vrf vrf10
   import vpn
   export vpn
  exit-address-family
-!
-segment-routing
-  srv6
-    locators
-      locator default
-        prefix {locator}
-      !
-    !
-  !
-!
 !
 line vty
 !
