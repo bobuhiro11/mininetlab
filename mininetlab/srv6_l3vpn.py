@@ -19,18 +19,12 @@ segment-routing
     locators
       locator default
         prefix {locator}
-      !
-    !
-  !
-!
 !
 router bgp {asnum}
  bgp router-id  {router_id}
  bgp bestpath as-path multipath-relax
  no bgp network import-check
  no bpp ebgp-requires-policy
- ! https://docs.frrouting.org/en/latest/bgp.html
- !  IPv6 unicast address family is enabled by default for all new neighbors.
  bgp default ipv6-unicast
  bgp default ipv4-vpn
  neighbor {name}-eth0 interface remote-as external
@@ -38,11 +32,6 @@ router bgp {asnum}
  !
  segment-routing srv6
    locator default
- !
- !address-family ipv4 vpn
-  ! neighbor {name}-eth0 interface activate
-  !
- !exit-address-family
  !
  address-family ipv6 unicast
    network {locator}
@@ -95,7 +84,7 @@ def run():
                      locator='2001:db8:1:1::/64', gw_in_vrf='192.168.1.254/24')
     r2 = net.addHost('r2', privateDirs=privateDirs, asnum=65002, router_id='203.0.113.2',
                      locator='2001:db8:2:2::/64', gw_in_vrf='192.168.2.254/24')
-    # tenant #10
+    # Tenant #10.
     c11 = net.addHost('c11', ip='192.168.1.1/24', privateDirs=privateDirs)
     c21 = net.addHost('c21', ip='192.168.2.1/24', privateDirs=privateDirs)
 
