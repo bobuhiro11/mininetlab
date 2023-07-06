@@ -51,7 +51,8 @@ router bgp {asnum} vrf vrf10
  bgp router-id  {router_id}
  address-family ipv4 unicast
   redistribute connected
-  sid vpn export 1
+  ! 16 = 0x10
+  sid vpn export 16
   rd vpn export {asnum}:10
   rt vpn both 0:10
   import vpn
