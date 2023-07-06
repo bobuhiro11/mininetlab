@@ -93,11 +93,10 @@ def run():
 
     r1 = net.addHost('r1', ip='fc00:beef::1/64',
                      privateDirs=privateDirs, asnum=65001, router_id='203.0.113.1',
-                     locator='2001:db8:1:1::/64', neighbor='fc00:beef::2', remote_asnum=65002)
+                     locator='2001:db8:1:1::/64')
     r2 = net.addHost('r2', ip='fc00:beef::2/64',
                      privateDirs=privateDirs, asnum=65002, router_id='203.0.113.2',
-                     locator='2001:db8:2:2::/64', neighbor='fc00:beef::1', remote_asnum=65001)
-
+                     locator='2001:db8:2:2::/64')
     # tenant #10
     c11 = net.addHost('c11', ip='192.168.1.1/24', privateDirs=privateDirs)
     c21 = net.addHost('c21', ip='192.168.2.1/24', privateDirs=privateDirs)
@@ -282,8 +281,7 @@ def run():
         put_file(r, "/etc/frr/vtysh.conf", vtysh_conf)
         put_file(r, "/etc/frr/frr.conf", frr_conf, name=r.name,
                  router_id=r.params["router_id"], asnum=r.params['asnum'],
-                 locator=r.params["locator"], neighbor=r.params['neighbor'],
-                 remote_asnum=r.params["remote_asnum"])
+                 locator=r.params["locator"])
         r.cmd("/usr/lib/frr/frrinit.sh start")
 
     time.sleep(5)
