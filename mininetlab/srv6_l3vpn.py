@@ -134,13 +134,16 @@ def run():
     for r in [r1, r2]:
         # h.cmd('sysctl -w net.ipv4.tcp_l3mdev_accept=1')
         # h.cmd('sysctl -w net.ipv4.udp_l3mdev_accept=1')
-        # h.cmd('sysctl -w net.ipv4.conf.default.rp_filter=0')
-        # h.cmd('sysctl -w net.ipv4.conf.all.rp_filter=0')
+        r.cmd('sysctl -w net.ipv4.conf.default.rp_filter=0')
+        r.cmd('sysctl -w net.ipv4.conf.all.rp_filter=0')
         # h.cmd('sysctl -w net.ipv4.conf.default.arp_accept=0')
         # h.cmd('sysctl -w net.ipv4.conf.default.arp_announce=2')
         # h.cmd('sysctl -w net.ipv4.conf.default.arp_filter=0')
         # h.cmd('sysctl -w net.ipv4.conf.default.arp_ignore=1')
         # h.cmd('sysctl -w net.ipv4.conf.default.arp_notify=1')
+
+        # refs: https://onvox.net/2022/06/27/srv6-frr/
+        r.cmd('sysctl -w net.ipv6.seg6_flowlabel=1')
         r.cmd('sysctl -w net.vrf.strict_mode=1')
         r.cmd('sysctl -w net.ipv4.ip_forward=1')
         r.cmd('sysctl -w net.ipv6.ip_forward=1')
@@ -164,19 +167,21 @@ def run():
     # host8.cmd('ip route add default via 10.0.3.1 dev host8-eth0')
 
     # set up underlay
-    # for r in [r1, r2]:
+    for r in [r1, r2]:
         # add ipv6 address and SID/BGP route.
         # r.cmd('ip -6 addr add {} dev {}-eth0'.format(r.params['ip'], r.name))
-        # if r.name == 'r1':
-            # r.cmd('ip -6 addr add 2001:db8:1:1::1/128 dev lo')
+        if r.name == 'r1':
+            r.cmd('ip -6 addr add 2001:db8:1:1::1/128 dev lo')
             # r.cmd('ip -6 route add 2001:db8:2:2::/64 via fc00:beef::2')
             # r.cmd('ip -6 route add 2001:db8::2/128 dev r1-eth0 src 2001:db8::1')
-        # else:
-            # r.cmd('ip -6 addr add 2001:db8:2:2::1/128 dev lo')
+        else:
+            r.cmd('ip -6 addr add 2001:db8:2:2::1/128 dev lo')
             # r.cmd('ip -6 route add 2001:db8:1:1::/64 via fc00:beef::1')
             # r.cmd('ip -6 route add 2001:db8::1/128 dev r2-eth0 src 2001:db8::2')
 
     # setup tenant #10
+    c11.cmd('ip route add default via 192.168.1.254')
+    c21.cmd('ip route add default via 192.168.2.254')
     for r in [r1, r2]:
         # add vrf
         r.cmd('ip link add vrf10 type vrf table 10')
@@ -284,7 +289,7 @@ def run():
     r1.cmdPrint('vtysh -c "show ipv6 route"')
     r1.cmdPrint('vtysh -c "show bgp ipv4 vpn summary"')
     r1.cmdPrint('vtysh -c "show ip bgp vrf all"')
-    # r1.cmdPrint('vtysh -c "show bgp segment-routing srv6"')
+    r1.cmdPrint('vtysh -c "show bgp segment-routing srv6"')
     # r1.cmdPrint('vtysh -c "show ip route vrf vrf10"')
     # r2.cmdPrint('vtysh -c "show ip route vrf vrf10"')
     CLI(net)
