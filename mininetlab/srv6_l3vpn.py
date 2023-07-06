@@ -266,8 +266,9 @@ def run():
 
     time.sleep(5)
     r1.cmdPrint('vtysh -c "show bgp summary"')
-    # r1.cmdPrint('vtysh -c "show segment-routing srv6 locator"')
+    r1.cmdPrint('vtysh -c "show segment-routing srv6 locator"')
     # r1.cmdPrint('vtysh -c "show bgp ipv4 vpn"')
+    r1.cmdPrint('vtysh -c "show bgp ipv4 vpn summary"')
     # r1.cmdPrint('vtysh -c "show bgp segment-routing srv6"')
     # r1.cmdPrint('vtysh -c "show ip route vrf vrf10"')
     # r2.cmdPrint('vtysh -c "show ip route vrf vrf10"')
