@@ -112,7 +112,7 @@ def run():
 
     net.start()
 
-    # Setup Underlay.
+    # Setup routers.
     for r in [r1, r2]:
         # refs: https://onvox.net/2022/06/27/srv6-frr/
         r.cmd('sysctl -w net.ipv4.conf.default.rp_filter=0')
@@ -130,7 +130,7 @@ def run():
         r.cmd('sysctl -w net.ipv6.conf.all.forwarding=1')
         r.cmd('sysctl -w net.ipv6.conf.default.forwarding=1')
 
-        # Add SID anchor?
+        # Add SID? Needed?
         if r.name == 'r1':
             r.cmd('ip -6 addr add 2001:db8:1:1::1/128 dev lo')
         else:
@@ -150,7 +150,6 @@ def run():
         r.cmd('ip link set {}-eth2 up'.format(r.name))
         r.cmd('ip addr add {} dev {}-eth2'.format(r.params['gw_in_vrf'], r.name))
 
-    for r in [r1, r2]:
         put_file(r, "/etc/frr/daemons", daemons)
         put_file(r, "/etc/frr/vtysh.conf", vtysh_conf)
         put_file(r, "/etc/frr/frr.conf", frr_conf, name=r.name,
@@ -158,16 +157,17 @@ def run():
                  locator=r.params["locator"])
         r.cmd("/usr/lib/frr/frrinit.sh start")
 
-    # Setup Overlay.
+    # Setup clients.
     c11.cmd('ip route add default via 192.168.1.254')
     c12.cmd('ip route add default via 192.168.1.254')
     c21.cmd('ip route add default via 192.168.2.254')
     c22.cmd('ip route add default via 192.168.2.254')
+
     for c in [c11, c21, c12, c22]:
         put_file(c, "/tmp/index.html", c.name + "\n")
         c.cmd("cd /tmp; python3 -m http.server 80 >/dev/null 2>&1 &")
 
-    time.sleep(5)
+    time.sleep(7)
     r1.cmdPrint('vtysh -c "show bgp summary"')
     r1.cmdPrint('vtysh -c "show segment-routing srv6 locator"')
     r1.cmdPrint('vtysh -c "show ipv6 route"')
@@ -175,7 +175,6 @@ def run():
     r1.cmdPrint('vtysh -c "show ip bgp vrf all"')
     r1.cmdPrint('vtysh -c "show bgp segment-routing srv6"')
 
-    # assert "100% packet loss" in host1.cmd('ping -c 1 10.0.3.2')
     assert "0% packet loss" in c11.cmd('ping -c 1 192.168.1.1')
     assert "0% packet loss" in c11.cmd('ping -c 1 192.168.2.1')
     assert "c11" in c11.cmd('curl 192.168.1.1')
