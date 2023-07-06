@@ -27,6 +27,9 @@ router bgp {asnum}
  bgp bestpath as-path multipath-relax
  no bgp network import-check
  no bpp ebgp-requires-policy
+ ! https://docs.frrouting.org/en/latest/bgp.html
+ !  IPv6 unicast address family is enabled by default for all new neighbors.
+ bgp default ipv6-unicast
  neighbor {name}-eth0 interface remote-as external
  neighbor {name}-eth0 interface capability extended-nexthop
  !
@@ -38,7 +41,7 @@ router bgp {asnum}
  exit-address-family
  !
  address-family ipv6 unicast
-   {locator}
+   network {locator}
  exit-address-family
 !
 router bgp {asnum} vrf vrf10
@@ -139,8 +142,8 @@ def run():
         r.cmd('sysctl -w net.ipv6.conf.default.autoconf=0')
         r.cmd('sysctl -w net.ipv6.conf.all.autoconf=0')
         # https://ktaka.blog.ccmp.jp/2020/05/linuxslaac-ipv6.html
-        r.cmd('sysctl -w net.ipv6.conf.all.addr_gen_mode=1')
-        r.cmd('sysctl -w net.ipv6.conf.default.addr_gen_mode=1')
+        r.cmd('sysctl -w net.ipv6.conf.all.addr_gen_mode=0')
+        r.cmd('sysctl -w net.ipv6.conf.default.addr_gen_mode=0')
 
     # host1.cmd('ip route add default via 10.0.1.1 dev host1-eth0')
     # host2.cmd('ip route add default via 10.0.1.1 dev host2-eth0')
@@ -255,6 +258,7 @@ def run():
     #     h.cmd('ip link set br201 master vrf200')  # l2vni
     #     h.cmd('ip link set br203 master vrf200')  # l2vni
 
+    time.sleep(2)
     for r in [r1, r2]:
         put_file(r, "/etc/frr/daemons", daemons)
         put_file(r, "/etc/frr/vtysh.conf", vtysh_conf)
@@ -268,6 +272,7 @@ def run():
     r1.cmdPrint('vtysh -c "show bgp summary"')
     r1.cmdPrint('vtysh -c "show segment-routing srv6 locator"')
     # r1.cmdPrint('vtysh -c "show bgp ipv4 vpn"')
+    r1.cmdPrint('vtysh -c "show ipv6 route"')
     r1.cmdPrint('vtysh -c "show bgp ipv4 vpn summary"')
     # r1.cmdPrint('vtysh -c "show bgp segment-routing srv6"')
     # r1.cmdPrint('vtysh -c "show ip route vrf vrf10"')
