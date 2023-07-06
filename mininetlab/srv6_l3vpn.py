@@ -37,13 +37,17 @@ router bgp {asnum} vrf vrf10
   export vpn
  exit-address-family
 !
-line vty
+segment-routing
+  srv6
+    locators
+      locator default
+        prefix {locator}
+      exit
+    exit
+  exit
+exit
 !
-!segment-routing
-!  srv6
-!    locators
-!      locator default
-!      prefix {locator}
+line vty
 !
 end
 '''
