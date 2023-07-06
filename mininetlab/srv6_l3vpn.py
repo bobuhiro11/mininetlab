@@ -2,7 +2,6 @@
 
 from mininet.net import Mininet
 from mininet.log import setLogLevel
-from mininet.cli import CLI
 import time
 
 frr_conf = '''
@@ -92,10 +91,12 @@ def run():
 
     privateDirs = ['/etc/frr', '/var/run/frr', '/tmp']
 
-    r1 = net.addHost('r1', privateDirs=privateDirs, asnum=65001, router_id='203.0.113.1',
-                     locator='2001:db8:1:1::/64', gw_in_vrf='192.168.1.254/24')
-    r2 = net.addHost('r2', privateDirs=privateDirs, asnum=65002, router_id='203.0.113.2',
-                     locator='2001:db8:2:2::/64', gw_in_vrf='192.168.2.254/24')
+    r1 = net.addHost('r1', privateDirs=privateDirs, asnum=65001,
+                     router_id='203.0.113.1', locator='2001:db8:1:1::/64',
+                     gw='192.168.1.254/24')
+    r2 = net.addHost('r2', privateDirs=privateDirs, asnum=65002,
+                     router_id='203.0.113.2', locator='2001:db8:2:2::/64',
+                     gw='192.168.2.254/24')
     # Tenant #10.
     c11 = net.addHost('c11', ip='192.168.1.1/24', privateDirs=privateDirs)
     c21 = net.addHost('c21', ip='192.168.2.1/24', privateDirs=privateDirs)
@@ -141,14 +142,14 @@ def run():
         r.cmd('ip link set vrf10 up')
         r.cmd('ip link set {}-eth1 master vrf10'.format(r.name))
         r.cmd('ip link set {}-eth1 up'.format(r.name))
-        r.cmd('ip addr add {} dev {}-eth1'.format(r.params['gw_in_vrf'], r.name))
+        r.cmd('ip addr add {} dev {}-eth1'.format(r.params['gw'], r.name))
 
         # Add VRF 20.
         r.cmd('ip link add vrf20 type vrf table 20')
         r.cmd('ip link set vrf20 up')
         r.cmd('ip link set {}-eth2 master vrf20'.format(r.name))
         r.cmd('ip link set {}-eth2 up'.format(r.name))
-        r.cmd('ip addr add {} dev {}-eth2'.format(r.params['gw_in_vrf'], r.name))
+        r.cmd('ip addr add {} dev {}-eth2'.format(r.params['gw'], r.name))
 
         put_file(r, "/etc/frr/daemons", daemons)
         put_file(r, "/etc/frr/vtysh.conf", vtysh_conf)
