@@ -92,42 +92,20 @@ def run():
     privateDirs = ['/etc/frr', '/var/run/frr', '/tmp']
 
     r1 = net.addHost('r1', privateDirs=privateDirs, asnum=65001, router_id='203.0.113.1',
-                     locator='2001:db8:1:1::/64')
+                     locator='2001:db8:1:1::/64', gw_in_vrf='192.168.1.254/24')
     r2 = net.addHost('r2', privateDirs=privateDirs, asnum=65002, router_id='203.0.113.2',
-                     locator='2001:db8:2:2::/64')
+                     locator='2001:db8:2:2::/64', gw_in_vrf='192.168.2.254/24')
     # tenant #10
     c11 = net.addHost('c11', ip='192.168.1.1/24', privateDirs=privateDirs)
     c21 = net.addHost('c21', ip='192.168.2.1/24', privateDirs=privateDirs)
-    # host2 = net.addHost('host2', ip='10.0.1.3/24', mac='10:00:10:00:01:03')
 
-    # # tenant #100, subnet #2
-    # host3 = net.addHost('host3', ip='10.0.2.2/24', mac='10:00:10:00:02:02')
-    # host4 = net.addHost('host4', ip='10.0.2.3/24', mac='10:00:10:00:02:03')
-
-    # # tenant #200, subnet #1
-    # host5 = net.addHost('host5', ip='10.0.1.2/24', mac='20:00:10:00:01:02')
-    # host6 = net.addHost('host6', ip='10.0.1.3/24', mac='20:00:10:00:01:03')
-
-    # # tenant #200, subnet #3
-    # host7 = net.addHost('host7', ip='10.0.3.2/24', mac='20:00:10:00:03:02')
-    # host8 = net.addHost('host8', ip='10.0.3.3/24', mac='20:00:10:00:03:03')
-
-    # net.addLink(spine, leaf1)
-    # net.addLink(spine, leaf2)
-    # net.addLink(leaf1, host1)
-    # net.addLink(leaf2, host2)
-    # net.addLink(leaf1, host3)
-    # net.addLink(leaf2, host4)
-    # net.addLink(leaf1, host5)
-    # net.addLink(leaf2, host6)
-    # net.addLink(leaf1, host7)
-    # net.addLink(leaf2, host8)
     net.addLink(r1, r2)
     net.addLink(r1, c11)
     net.addLink(r2, c21)
 
     net.start()
 
+    # Setup Underlay.
     for r in [r1, r2]:
         # refs: https://onvox.net/2022/06/27/srv6-frr/
         r.cmd('sysctl -w net.ipv4.conf.default.rp_filter=0')
@@ -145,31 +123,18 @@ def run():
         r.cmd('sysctl -w net.ipv6.conf.all.forwarding=1')
         r.cmd('sysctl -w net.ipv6.conf.default.forwarding=1')
 
-    # set up underlay
-    for r in [r1, r2]:
+        # Add SID anchor?
         if r.name == 'r1':
             r.cmd('ip -6 addr add 2001:db8:1:1::1/128 dev lo')
         else:
             r.cmd('ip -6 addr add 2001:db8:2:2::1/128 dev lo')
 
-    # setup tenant #10
-    c11.cmd('ip route add default via 192.168.1.254')
-    c21.cmd('ip route add default via 192.168.2.254')
-    for r in [r1, r2]:
-        # add vrf
+        # Add VRF 10.
         r.cmd('ip link add vrf10 type vrf table 10')
         r.cmd('ip link set vrf10 up')
-        # add GW
         r.cmd('ip link set {}-eth1 master vrf10'.format(r.name))
         r.cmd('ip link set {}-eth1 up'.format(r.name))
-        if r.name == "r1":
-            r.cmd('ip addr add 192.168.1.254/24 dev {}-eth1'.format(r.name))
-        else:
-            r.cmd('ip addr add 192.168.2.254/24 dev {}-eth1'.format(r.name))
-
-    for c in [c11,c21]:
-        put_file(c, "/tmp/index.html", c.name + "\n")
-        c.cmd("cd /tmp; python3 -m http.server 80 >/dev/null 2>&1 &")
+        r.cmd('ip addr add {} dev {}-eth1'.format(r.params['gw_in_vrf'], r.name))
 
     for r in [r1, r2]:
         put_file(r, "/etc/frr/daemons", daemons)
@@ -178,6 +143,13 @@ def run():
                  router_id=r.params["router_id"], asnum=r.params['asnum'],
                  locator=r.params["locator"])
         r.cmd("/usr/lib/frr/frrinit.sh start")
+
+    # Setup Overlay.
+    c11.cmd('ip route add default via 192.168.1.254')
+    c21.cmd('ip route add default via 192.168.2.254')
+    for c in [c11, c21]:
+        put_file(c, "/tmp/index.html", c.name + "\n")
+        c.cmd("cd /tmp; python3 -m http.server 80 >/dev/null 2>&1 &")
 
     time.sleep(5)
     r1.cmdPrint('vtysh -c "show bgp summary"')
