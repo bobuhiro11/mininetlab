@@ -80,16 +80,16 @@ bgpd_options="   -A 127.0.0.1"
 
 
 def put_file(host, file_name, content, **kwargs):
-    with open("/tmp/tmp", mode="w") as f:
+    with open("./tmp", mode="w") as f:
         f.write(content.format(**kwargs))
-    host.cmdPrint("cp /tmp/tmp " + file_name)
+    host.cmdPrint("cp ./tmp " + file_name)
 
 
 def run():
     setLogLevel('info')
     net = Mininet()
 
-    privateDirs = ['/etc/frr', '/var/run/frr']
+    privateDirs = ['/etc/frr', '/var/run/frr', '/tmp']
 
     r1 = net.addHost('r1', ip='fc00:beef::1/64',
                      privateDirs=privateDirs, asnum=65001, router_id='203.0.113.1',
@@ -99,8 +99,8 @@ def run():
                      locator='2001:db8:2:2::/64', neighbor='fc00:beef::1', remote_asnum=65001)
 
     # tenant #10
-    c11 = net.addHost('c11', ip='192.168.1.1/24')
-    c21 = net.addHost('c21', ip='192.168.2.1/24')
+    c11 = net.addHost('c11', ip='192.168.1.1/24', privateDirs=privateDirs)
+    c21 = net.addHost('c21', ip='192.168.2.1/24', privateDirs=privateDirs)
     # host2 = net.addHost('host2', ip='10.0.1.3/24', mac='10:00:10:00:01:03')
 
     # # tenant #100, subnet #2
@@ -271,6 +271,10 @@ def run():
     #     h.cmd('ip link set br200 master vrf200')  # l3vni
     #     h.cmd('ip link set br201 master vrf200')  # l2vni
     #     h.cmd('ip link set br203 master vrf200')  # l2vni
+
+    for c in [c11,c21]:
+        put_file(c, "/tmp/index.html", c.name + "\n")
+        c.cmd("cd /tmp; python3 -m http.server 80 >/dev/null 2>&1 &")
 
     time.sleep(2)
     for r in [r1, r2]:
