@@ -7,7 +7,9 @@ import time
 
 frr_conf = '''
 frr defaults datacenter
-log file /var/log/frr/frr.log debug
+log file /tmp/frr-{name}.log
+debug zebra kernel
+debug zebra rib detail
 !
 hostname {name}
 password zebra
@@ -30,6 +32,7 @@ router bgp {asnum}
  ! https://docs.frrouting.org/en/latest/bgp.html
  !  IPv6 unicast address family is enabled by default for all new neighbors.
  bgp default ipv6-unicast
+ ! bgp default ipv4-vpn
  neighbor {name}-eth0 interface remote-as external
  neighbor {name}-eth0 interface capability extended-nexthop
  !
@@ -144,6 +147,10 @@ def run():
         # https://ktaka.blog.ccmp.jp/2020/05/linuxslaac-ipv6.html
         r.cmd('sysctl -w net.ipv6.conf.all.addr_gen_mode=0')
         r.cmd('sysctl -w net.ipv6.conf.default.addr_gen_mode=0')
+        r.cmd('sysctl -w net.ipv6.conf.all.seg6_enabled=1')
+        r.cmd('sysctl -w net.ipv6.conf.default.seg6_enabled=1')
+        r.cmd('sysctl -w net.ipv6.conf.all.forwarding=1')
+        r.cmd('sysctl -w net.ipv6.conf.default.forwarding=1')
 
     # host1.cmd('ip route add default via 10.0.1.1 dev host1-eth0')
     # host2.cmd('ip route add default via 10.0.1.1 dev host2-eth0')
