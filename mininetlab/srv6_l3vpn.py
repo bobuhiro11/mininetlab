@@ -32,7 +32,7 @@ router bgp {asnum}
  ! https://docs.frrouting.org/en/latest/bgp.html
  !  IPv6 unicast address family is enabled by default for all new neighbors.
  bgp default ipv6-unicast
- ! bgp default ipv4-vpn
+ bgp default ipv4-vpn
  neighbor {name}-eth0 interface remote-as external
  neighbor {name}-eth0 interface capability extended-nexthop
  !
@@ -40,7 +40,8 @@ router bgp {asnum}
    locator default
  !
  address-family ipv4 vpn
-  neighbor {name}-eth0 interface activate
+  ! neighbor {name}-eth0 interface activate
+  !
  exit-address-family
  !
  address-family ipv6 unicast
