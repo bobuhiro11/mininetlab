@@ -83,16 +83,16 @@ def run():
 
     privateDirs = ['/etc/frr', '/var/run/frr']
 
-    r1 = net.addHost('r1', ip='2001:db8::1/64',
+    r1 = net.addHost('r1', ip='fc00:beef::1/64',
                      privateDirs=privateDirs, asnum=65001, router_id='203.0.113.1',
-                     locator='2001:db8:1:1::/64')
-    r2 = net.addHost('r2', ip='2001:db8::2/64',
+                     locator='2001:db8:1:1::/64', neighbor='fc00:beef::2', remote_asnum=65002)
+    r2 = net.addHost('r2', ip='fc00:beef::2/64',
                      privateDirs=privateDirs, asnum=65002, router_id='203.0.113.2',
-                     locator='2001:db8:2:2::/64')
+                     locator='2001:db8:2:2::/64', neighbor='fc00:beef::1', remote_asnum=65001)
 
     # tenant #10
     c11 = net.addHost('c11', ip='192.168.1.1/24')
-    c21 = net.addHost('c11', ip='192.168.2.1/24')
+    c21 = net.addHost('c21', ip='192.168.2.1/24')
     # host2 = net.addHost('host2', ip='10.0.1.3/24', mac='10:00:10:00:01:03')
 
     # # tenant #100, subnet #2
@@ -123,6 +123,25 @@ def run():
 
     net.start()
 
+    for r in [r1, r2]:
+        # h.cmd('sysctl -w net.ipv4.tcp_l3mdev_accept=1')
+        # h.cmd('sysctl -w net.ipv4.udp_l3mdev_accept=1')
+        # h.cmd('sysctl -w net.ipv4.conf.default.rp_filter=0')
+        # h.cmd('sysctl -w net.ipv4.conf.all.rp_filter=0')
+        # h.cmd('sysctl -w net.ipv4.conf.default.arp_accept=0')
+        # h.cmd('sysctl -w net.ipv4.conf.default.arp_announce=2')
+        # h.cmd('sysctl -w net.ipv4.conf.default.arp_filter=0')
+        # h.cmd('sysctl -w net.ipv4.conf.default.arp_ignore=1')
+        # h.cmd('sysctl -w net.ipv4.conf.default.arp_notify=1')
+        r.cmd('sysctl -w net.vrf.strict_mode=1')
+        r.cmd('sysctl -w net.ipv4.ip_forward=1')
+        r.cmd('sysctl -w net.ipv6.ip_forward=1')
+        r.cmd('sysctl -w net.ipv6.conf.default.autoconf=0')
+        r.cmd('sysctl -w net.ipv6.conf.all.autoconf=0')
+        # https://ktaka.blog.ccmp.jp/2020/05/linuxslaac-ipv6.html
+        r.cmd('sysctl -w net.ipv6.conf.all.addr_gen_mode=1')
+        r.cmd('sysctl -w net.ipv6.conf.default.addr_gen_mode=1')
+
     # host1.cmd('ip route add default via 10.0.1.1 dev host1-eth0')
     # host2.cmd('ip route add default via 10.0.1.1 dev host2-eth0')
     # host3.cmd('ip route add default via 10.0.2.1 dev host3-eth0')
@@ -131,6 +150,19 @@ def run():
     # host6.cmd('ip route add default via 10.0.1.1 dev host6-eth0')
     # host7.cmd('ip route add default via 10.0.3.1 dev host7-eth0')
     # host8.cmd('ip route add default via 10.0.3.1 dev host8-eth0')
+
+    # set up underlay
+    # for r in [r1, r2]:
+        # add ipv6 address and SID/BGP route.
+        # r.cmd('ip -6 addr add {} dev {}-eth0'.format(r.params['ip'], r.name))
+        # if r.name == 'r1':
+            # r.cmd('ip -6 addr add 2001:db8:1:1::1/128 dev lo')
+            # r.cmd('ip -6 route add 2001:db8:2:2::/64 via fc00:beef::2')
+            # r.cmd('ip -6 route add 2001:db8::2/128 dev r1-eth0 src 2001:db8::1')
+        # else:
+            # r.cmd('ip -6 addr add 2001:db8:2:2::1/128 dev lo')
+            # r.cmd('ip -6 route add 2001:db8:1:1::/64 via fc00:beef::1')
+            # r.cmd('ip -6 route add 2001:db8::1/128 dev r2-eth0 src 2001:db8::2')
 
     # setup tenant #10
     for r in [r1, r2]:
@@ -224,32 +256,21 @@ def run():
     #     h.cmd('ip link set br203 master vrf200')  # l2vni
 
     for r in [r1, r2]:
-        r.cmd('sysctl -w net.vrf.strict_mode=1')
-        r.cmd('sysctl -w net.ipv4.ip_forward=1')
-        r.cmd('sysctl -w net.ipv6.ip_forward=1')
-        # h.cmd('sysctl -w net.ipv4.tcp_l3mdev_accept=1')
-        # h.cmd('sysctl -w net.ipv4.udp_l3mdev_accept=1')
-        # h.cmd('sysctl -w net.ipv4.conf.default.rp_filter=0')
-        # h.cmd('sysctl -w net.ipv4.conf.all.rp_filter=0')
-        # h.cmd('sysctl -w net.ipv4.conf.default.arp_accept=0')
-        # h.cmd('sysctl -w net.ipv4.conf.default.arp_announce=2')
-        # h.cmd('sysctl -w net.ipv4.conf.default.arp_filter=0')
-        # h.cmd('sysctl -w net.ipv4.conf.default.arp_ignore=1')
-        # h.cmd('sysctl -w net.ipv4.conf.default.arp_notify=1')
         put_file(r, "/etc/frr/daemons", daemons)
         put_file(r, "/etc/frr/vtysh.conf", vtysh_conf)
         put_file(r, "/etc/frr/frr.conf", frr_conf, name=r.name,
                  router_id=r.params["router_id"], asnum=r.params['asnum'],
-                 locator=r.params["locator"])
+                 locator=r.params["locator"], neighbor=r.params['neighbor'],
+                 remote_asnum=r.params["remote_asnum"])
         r.cmd("/usr/lib/frr/frrinit.sh start")
 
     time.sleep(5)
     r1.cmdPrint('vtysh -c "show bgp summary"')
-    r1.cmdPrint('vtysh -c "show segment-routing srv6 locator"')
-    r1.cmdPrint('vtysh -c "show bgp ipv4 vpn"')
-    r1.cmdPrint('vtysh -c "show bgp segment-routing srv6"')
-    r1.cmdPrint('vtysh -c "show ip route vrf vrf10"')
-    r2.cmdPrint('vtysh -c "show ip route vrf vrf10"')
+    # r1.cmdPrint('vtysh -c "show segment-routing srv6 locator"')
+    # r1.cmdPrint('vtysh -c "show bgp ipv4 vpn"')
+    # r1.cmdPrint('vtysh -c "show bgp segment-routing srv6"')
+    # r1.cmdPrint('vtysh -c "show ip route vrf vrf10"')
+    # r2.cmdPrint('vtysh -c "show ip route vrf vrf10"')
     CLI(net)
     # leaf1.cmdPrint('vtysh -c "show ip bgp"')
     # leaf1.cmdPrint('vtysh -c "show ip bgp l2vpn evpn"')
