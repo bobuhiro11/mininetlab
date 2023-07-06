@@ -39,10 +39,10 @@ router bgp {asnum}
  segment-routing srv6
    locator default
  !
- address-family ipv4 vpn
+ !address-family ipv4 vpn
   ! neighbor {name}-eth0 interface activate
   !
- exit-address-family
+ !exit-address-family
  !
  address-family ipv6 unicast
    network {locator}
@@ -283,6 +283,7 @@ def run():
     # r1.cmdPrint('vtysh -c "show bgp ipv4 vpn"')
     r1.cmdPrint('vtysh -c "show ipv6 route"')
     r1.cmdPrint('vtysh -c "show bgp ipv4 vpn summary"')
+    r1.cmdPrint('vtysh -c "show ip bgp vrf all"')
     # r1.cmdPrint('vtysh -c "show bgp segment-routing srv6"')
     # r1.cmdPrint('vtysh -c "show ip route vrf vrf10"')
     # r2.cmdPrint('vtysh -c "show ip route vrf vrf10"')
