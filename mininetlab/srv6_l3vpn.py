@@ -49,6 +49,18 @@ router bgp {asnum} vrf vrf10
   export vpn
  exit-address-family
 !
+router bgp {asnum} vrf vrf20
+ bgp router-id  {router_id}
+ address-family ipv4 unicast
+  redistribute connected
+  ! 32 = 0x20
+  sid vpn export 32
+  rd vpn export {asnum}:20
+  rt vpn both 0:20
+  import vpn
+  export vpn
+ exit-address-family
+!
 line vty
 !
 end
@@ -88,9 +100,15 @@ def run():
     c11 = net.addHost('c11', ip='192.168.1.1/24', privateDirs=privateDirs)
     c21 = net.addHost('c21', ip='192.168.2.1/24', privateDirs=privateDirs)
 
+    # Tenant #20.
+    c12 = net.addHost('c12', ip='192.168.1.1/24', privateDirs=privateDirs)
+    c22 = net.addHost('c22', ip='192.168.2.1/24', privateDirs=privateDirs)
+
     net.addLink(r1, r2)
     net.addLink(r1, c11)
     net.addLink(r2, c21)
+    net.addLink(r1, c12)
+    net.addLink(r2, c22)
 
     net.start()
 
@@ -125,6 +143,13 @@ def run():
         r.cmd('ip link set {}-eth1 up'.format(r.name))
         r.cmd('ip addr add {} dev {}-eth1'.format(r.params['gw_in_vrf'], r.name))
 
+        # Add VRF 20.
+        r.cmd('ip link add vrf20 type vrf table 20')
+        r.cmd('ip link set vrf20 up')
+        r.cmd('ip link set {}-eth2 master vrf20'.format(r.name))
+        r.cmd('ip link set {}-eth2 up'.format(r.name))
+        r.cmd('ip addr add {} dev {}-eth2'.format(r.params['gw_in_vrf'], r.name))
+
     for r in [r1, r2]:
         put_file(r, "/etc/frr/daemons", daemons)
         put_file(r, "/etc/frr/vtysh.conf", vtysh_conf)
@@ -135,8 +160,10 @@ def run():
 
     # Setup Overlay.
     c11.cmd('ip route add default via 192.168.1.254')
+    c12.cmd('ip route add default via 192.168.1.254')
     c21.cmd('ip route add default via 192.168.2.254')
-    for c in [c11, c21]:
+    c22.cmd('ip route add default via 192.168.2.254')
+    for c in [c11, c21, c12, c22]:
         put_file(c, "/tmp/index.html", c.name + "\n")
         c.cmd("cd /tmp; python3 -m http.server 80 >/dev/null 2>&1 &")
 
@@ -153,8 +180,10 @@ def run():
     assert "0% packet loss" in c11.cmd('ping -c 1 192.168.2.1')
     assert "c11" in c11.cmd('curl 192.168.1.1')
     assert "c21" in c11.cmd('curl 192.168.2.1')
+    assert "c12" in c12.cmd('curl 192.168.1.1')
+    assert "c22" in c12.cmd('curl 192.168.2.1')
 
-    loss_rate = net.ping(hosts=[c11, c21])
+    loss_rate = net.ping(hosts=[c11, c21]) + net.ping(hosts=[c12, c22])
 
     for h in [r1, r2]:
         h.cmd("/usr/lib/frr/frrinit.sh stop")
