@@ -91,11 +91,9 @@ def run():
 
     privateDirs = ['/etc/frr', '/var/run/frr', '/tmp']
 
-    r1 = net.addHost('r1', ip='fc00:beef::1/64',
-                     privateDirs=privateDirs, asnum=65001, router_id='203.0.113.1',
+    r1 = net.addHost('r1', privateDirs=privateDirs, asnum=65001, router_id='203.0.113.1',
                      locator='2001:db8:1:1::/64')
-    r2 = net.addHost('r2', ip='fc00:beef::2/64',
-                     privateDirs=privateDirs, asnum=65002, router_id='203.0.113.2',
+    r2 = net.addHost('r2', privateDirs=privateDirs, asnum=65002, router_id='203.0.113.2',
                      locator='2001:db8:2:2::/64')
     # tenant #10
     c11 = net.addHost('c11', ip='192.168.1.1/24', privateDirs=privateDirs)
@@ -294,7 +292,7 @@ def run():
     r1.cmdPrint('vtysh -c "show bgp segment-routing srv6"')
     # r1.cmdPrint('vtysh -c "show ip route vrf vrf10"')
     # r2.cmdPrint('vtysh -c "show ip route vrf vrf10"')
-    CLI(net)
+    # CLI(net)
     # leaf1.cmdPrint('vtysh -c "show ip bgp"')
     # leaf1.cmdPrint('vtysh -c "show ip bgp l2vpn evpn"')
     # leaf1.cmdPrint('vtysh -c "show evpn vni"')
@@ -302,11 +300,14 @@ def run():
     # leaf1.cmdPrint('ip route')
 
     # assert "100% packet loss" in host1.cmd('ping -c 1 10.0.3.2')
-    # assert "0% packet loss" in host1.cmd('ping -c 1 10.0.2.2')
+    assert "0% packet loss" in c11.cmd('ping -c 1 192.168.1.1')
+    assert "0% packet loss" in c11.cmd('ping -c 1 192.168.2.1')
+    assert "c11" in c11.cmd('curl 192.168.1.1')
+    assert "c21" in c11.cmd('curl 192.168.2.1')
 
     # loss_rate = net.ping(hosts=[host1, host2, host3, host4]) \
         # + net.ping(hosts=[host5, host6, host7, host8])
-    loss_rate = 0.0
+    loss_rate = net.ping(hosts=[c11, c21])
 
     for h in [r1, r2]:
         h.cmd("/usr/lib/frr/frrinit.sh stop")
