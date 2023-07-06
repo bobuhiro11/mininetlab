@@ -7,6 +7,7 @@ import time
 
 frr_conf = '''
 frr defaults datacenter
+log file /var/log/frr/frr.log debug
 !
 hostname {name}
 password zebra
@@ -17,8 +18,32 @@ router bgp {asnum}
  no bgp network import-check
  no bpp ebgp-requires-policy
  neighbor {name}-eth0 interface remote-as external
+ !
+ segment-routing srv6
+   locator default
+ !
+ address-family ipv4 vpn
+  neighbor {name}-eth0 activate
+ exit-address-family
+!
+router bgp {asnum} vrf vrf10
+ bgp router-id  {router_id}
+ address-family ipv4 unicast
+  redistribute connected
+  sid vpn export 1
+  rd vpn export {asnum}:10
+  rt vpn both 0:10
+  import vpn
+  export vpn
+ exit-address-family
 !
 line vty
+!
+!segment-routing
+!  srv6
+!    locators
+!      locator default
+!      prefix {locator}
 !
 end
 '''
@@ -49,12 +74,14 @@ def run():
     privateDirs = ['/etc/frr', '/var/run/frr']
 
     r1 = net.addHost('r1', ip='2001:db8::1/64',
-                     privateDirs=privateDirs, asnum=65001, router_id='203.0.113.1')
+                     privateDirs=privateDirs, asnum=65001, router_id='203.0.113.1',
+                     locator='2001:db8:1:1::/64')
     r2 = net.addHost('r2', ip='2001:db8::2/64',
-                     privateDirs=privateDirs, asnum=65002, router_id='203.0.113.2')
+                     privateDirs=privateDirs, asnum=65002, router_id='203.0.113.2',
+                     locator='2001:db8:2:2::/64')
 
-    # # tenant #100, subnet #1
-    # host1 = net.addHost('host1', ip='10.0.1.2/24', mac='10:00:10:00:01:02')
+    # tenant #10
+    c11 = net.addHost('c11', ip='192.168.1.1/24')
     # host2 = net.addHost('host2', ip='10.0.1.3/24', mac='10:00:10:00:01:03')
 
     # # tenant #100, subnet #2
@@ -80,6 +107,7 @@ def run():
     # net.addLink(leaf1, host7)
     # net.addLink(leaf2, host8)
     net.addLink(r1, r2)
+    net.addLink(r1, c11)
 
     net.start()
 
@@ -91,6 +119,16 @@ def run():
     # host6.cmd('ip route add default via 10.0.1.1 dev host6-eth0')
     # host7.cmd('ip route add default via 10.0.3.1 dev host7-eth0')
     # host8.cmd('ip route add default via 10.0.3.1 dev host8-eth0')
+
+    # setup tenant #10
+    for r in [r1, r2]:
+        # add vrf
+        r.cmd('ip link add vrf10 type vrf table 10')
+        r.cmd('ip link set vrf10 up')
+        # add GW
+        r.cmd('ip link set {}-eth1 master vrf10'.format(r.name))
+        r.cmd('ip link set {}-eth1 up'.format(r.name))
+        r.cmd('ip addr add 192.168.1.254/24 dev {}-eth1'.format(r.name))
 
     # # setup tenant #100
     # for h in [leaf1, leaf2]:
@@ -170,8 +208,10 @@ def run():
     #     h.cmd('ip link set br201 master vrf200')  # l2vni
     #     h.cmd('ip link set br203 master vrf200')  # l2vni
 
-    for h in [r1, r2]:
-        # h.cmd('sysctl -w net.ipv4.ip_forward=1')
+    for r in [r1, r2]:
+        r.cmd('sysctl -w net.vrf.strict_mode=1')
+        r.cmd('sysctl -w net.ipv4.ip_forward=1')
+        r.cmd('sysctl -w net.ipv6.ip_forward=1')
         # h.cmd('sysctl -w net.ipv4.tcp_l3mdev_accept=1')
         # h.cmd('sysctl -w net.ipv4.udp_l3mdev_accept=1')
         # h.cmd('sysctl -w net.ipv4.conf.default.rp_filter=0')
@@ -181,14 +221,17 @@ def run():
         # h.cmd('sysctl -w net.ipv4.conf.default.arp_filter=0')
         # h.cmd('sysctl -w net.ipv4.conf.default.arp_ignore=1')
         # h.cmd('sysctl -w net.ipv4.conf.default.arp_notify=1')
-        put_file(h, "/etc/frr/daemons", daemons)
-        put_file(h, "/etc/frr/vtysh.conf", vtysh_conf)
-        put_file(h, "/etc/frr/frr.conf", frr_conf, name=h.name,
-                 router_id=h.params["router_id"], asnum=h.params['asnum'])
-        h.cmd("/usr/lib/frr/frrinit.sh start")
+        put_file(r, "/etc/frr/daemons", daemons)
+        put_file(r, "/etc/frr/vtysh.conf", vtysh_conf)
+        put_file(r, "/etc/frr/frr.conf", frr_conf, name=r.name,
+                 router_id=r.params["router_id"], asnum=r.params['asnum'],
+                 locator=r.params["locator"])
+        r.cmd("/usr/lib/frr/frrinit.sh start")
 
     time.sleep(5)
     r1.cmdPrint('vtysh -c "show bgp summary"')
+    r1.cmdPrint('vtysh -c "show segment-routing srv6 locator"')
+    r1.cmdPrint('vtysh -c "show bgp ipv4 vpn"')
     CLI(net)
     # leaf1.cmdPrint('vtysh -c "show ip bgp"')
     # leaf1.cmdPrint('vtysh -c "show ip bgp l2vpn evpn"')
