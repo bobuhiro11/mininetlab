@@ -66,9 +66,9 @@ bgpd_options="   -A 127.0.0.1"
 
 
 def put_file(host, file_name, content, **kwargs):
-    with open("/tmp/tmp", mode="w") as f:
+    with open("./tmp", mode="w") as f:
         f.write(content.format(**kwargs))
-    host.cmdPrint("cp /tmp/tmp " + file_name)
+    host.cmdPrint("cp ./tmp " + file_name)
 
 
 def run():
