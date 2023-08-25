@@ -28,7 +28,7 @@ jobs:
           sudo apt install -y \
             tox tshark frr frr-pythontools p4lang-p4c clang linux-headers-$(uname -r) \
             infiniband-diags rdma-core rdmacm-utils ibverbs-utils \
-            bpfcc-tools bcc libnuma-dev python3.11 python2.7
+            bpfcc-tools bcc libnuma-dev python3.11 python2.7 meson python3-pyelftools
           sudo ln -s /usr/include/asm-generic /usr/include/asm
           sudo pip install tox-pip-version
 
@@ -50,11 +50,23 @@ jobs:
           sudo ldconfig
           popd
 
+          # install DPDK.
+          wget https://fast.dpdk.org/rel/dpdk-22.11.1.tar.xz
+          tar xf dpdk-22.11.1.tar.xz
+          pushd dpdk-stable-22.11.1
+          meson build  -Denable_drivers=net/tap
+          ninja -C build
+          sudo ninja -C build install
+          sudo ldconfig
+          export PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig
+          pkg-config --modversion libdpdk
+          popd
+
           # install ovs with afxdp
           git clone https://github.com/openvswitch/ovs.git -b v3.2.0 --depth 1
           pushd ovs
           ./boot.sh
-          ./configure --enable-afxdp --with-debug
+          ./configure --enable-afxdp --with-debug --with-dpdk=static
           make -j $(nproc)
           sudo make install
           popd
