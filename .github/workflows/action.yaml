@@ -51,7 +51,7 @@ jobs:
           popd
 
           # install ovs with afxdp
-          git clone https://github.com/openvswitch/ovs.git -b v2.16.1 --depth 1
+          git clone https://github.com/openvswitch/ovs.git -b v3.2.0 --depth 1
           pushd ovs
           ./boot.sh
           ./configure --enable-afxdp --with-debug
