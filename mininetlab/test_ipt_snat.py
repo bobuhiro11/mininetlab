@@ -1,5 +1,5 @@
 import unittest
-from mininetlab.ipt_masquerade import run
+from mininetlab.ipt_snat import run
 
 
 class TestRun(unittest.TestCase):
