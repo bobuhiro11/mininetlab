@@ -27,7 +27,7 @@ def run():
     natbox.cmd('ip addr add 10.0.0.1/24 dev natbox-eth1')
     with open("/tmp/natconfig", "w") as f:
         f.write('*nat\n')
-        f.write(('-A POSTROUTING -s 10.0.0.0/24 -o natbox-eth0 -j' +
+        f.write(('-A POSTROUTING -s 10.0.0.0/24 -j' +
                  ' SNAT --to-source 192.168.0.254\n'))
         f.write('COMMIT\n')
 
