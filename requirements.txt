@@ -2,3 +2,4 @@ mock
 future
 git+https://github.com/mininet/mininet@2.3.0#egg=mininet
 scapy
+retry
