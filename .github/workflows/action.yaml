@@ -22,8 +22,8 @@ jobs:
           FRRVER="frr-stable"
           echo "deb [trusted=yes] https://deb.frrouting.org/frr $(lsb_release -s -c) $FRRVER" | sudo tee /etc/apt/sources.list.d/frr.list
 
-          sudo apt update
-          sudo apt install -y \
+          sudo apt update --allow-insecure-repositories
+          sudo apt install -y --allow-unauthenticated \
             tox tshark frr frr-pythontools p4lang-p4c clang linux-headers-$(uname -r) \
             infiniband-diags rdma-core rdmacm-utils ibverbs-utils \
             bpfcc-tools bcc libnuma-dev python3.11 python2.7 meson python3-pyelftools
