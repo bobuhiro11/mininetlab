@@ -12,6 +12,17 @@ def call(args):
     subprocess_call(args, shell=True)
 
 
+def wait_for_cmd_output(host, cmd, expected, retries=5, delay=1):
+    """Retry command until expected string is found."""
+    out = ''
+    for _ in range(retries):
+        out = host.cmd(cmd)
+        if expected in out:
+            return out
+        time.sleep(delay)
+    return out
+
+
 def clean():
     call('rm -f p2.pcap')
     call('rm -f p1.pcap')
@@ -75,7 +86,7 @@ def run():
 
     # Check SRv6 encapsulation.
     h2.cmd('tcpdump -i p2 -w p2.pcap &')
-    time.sleep(1)
+    time.sleep(3)
     h1.cmd('''
         python3 -c "from scapy.all import *; \
             pkt=Ether(dst='aa:55:aa:55:00:ff',src='aa:55:aa:55:00:ee') \
@@ -83,15 +94,18 @@ def run():
             sendp(pkt, iface='p1')"
 ''')
 
-    time.sleep(3)
+    time.sleep(5)
     h2.cmd('pkill tcpdump')
-    time.sleep(1)
-    out = h2.cmd('tshark -V -r p2.pcap icmp')
+    time.sleep(3)
+    call('sync')
+    out = wait_for_cmd_output(
+        h2, 'tshark -V -r p2.pcap icmp',
+        'Routing Header for IPv6 (Segment Routing)')
     assert 'Routing Header for IPv6 (Segment Routing)' in out
 
     # Check SRv6 decapsulation.
     h1.cmd('tcpdump -i p1 -w p1.pcap &')
-    time.sleep(1)
+    time.sleep(3)
     h2.cmd('''
         python3 -c "from scapy.all import *; \
             pkt=Ether(src='aa:55:aa:55:00:01',dst='aa:55:aa:55:00:00') \
@@ -100,12 +114,13 @@ def run():
                 /IP(dst='192.168.5.5',src='192.168.5.6')/ICMP(); \
             sendp(pkt, iface='p2')"
 ''')
-    time.sleep(3)
+    time.sleep(5)
     h1.cmd('pkill tcpdump')
-    time.sleep(1)
-    out = h1.cmd('tshark -r p1.pcap')
-    out = h1.cmd('tshark -r p1.pcap')
-    out = h1.cmd('tshark -r p1.pcap')
+    time.sleep(3)
+    call('sync')
+    out = wait_for_cmd_output(
+        h1, 'tshark -r p1.pcap',
+        '192.168.5.5  ICMP 42 Echo (ping) request')
     assert '192.168.5.5  ICMP 42 Echo (ping) request' in out
 
     clean()
