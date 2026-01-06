@@ -9,8 +9,25 @@ jobs:
   test:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
-      - name: install deps
+      - uses: actions/checkout@v4
+
+      - name: Cache compiled binaries
+        id: cache-binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/cached-builds
+          key: build-deps-${{ runner.os }}-dpdk22.11.1-ovs3.2.0-libbpf5.15-v1
+
+      - name: Cache tox environments
+        uses: actions/cache@v4
+        with:
+          path: .tox
+          key: tox-${{ runner.os }}-${{ hashFiles('requirements.txt', 'tox.ini') }}
+          restore-keys: |
+            tox-${{ runner.os }}-
+
+      - name: install apt deps
         run: |
           set -x
 
@@ -39,6 +56,19 @@ jobs:
           ./util/install.sh -n
           popd
 
+      - name: Restore cached binaries
+        if: steps.cache-binaries.outputs.cache-hit == 'true'
+        run: |
+          set -x
+          sudo cp -r ~/cached-builds/usr/local/* /usr/local/
+          sudo sh -c "echo /usr/local/lib64 >> /etc/ld.so.conf"
+          sudo ldconfig
+
+      - name: Build libbpf, DPDK, OVS
+        if: steps.cache-binaries.outputs.cache-hit != 'true'
+        run: |
+          set -x
+
           # install libbpf
           grep CONFIG_BPF=y /boot/config-$(uname -r)
           grep CONFIG_BPF_SYSCALL=y /boot/config-$(uname -r)
@@ -50,11 +80,11 @@ jobs:
           sudo ldconfig
           popd
 
-          # install DPDK.
+          # install DPDK
           wget https://fast.dpdk.org/rel/dpdk-22.11.1.tar.xz
           tar xf dpdk-22.11.1.tar.xz
           pushd dpdk-stable-22.11.1
-          meson build  -Denable_drivers=net/tap
+          meson build -Denable_drivers=net/tap
           ninja -C build
           sudo ninja -C build install
           sudo ldconfig
@@ -70,6 +100,15 @@ jobs:
           make -j $(nproc)
           sudo make install
           popd
+
+          # Save to cache directory
+          mkdir -p ~/cached-builds
+          sudo cp -r /usr/local ~/cached-builds/
+      - name: Clone OVS for tests (when cached)
+        if: steps.cache-binaries.outputs.cache-hit == 'true'
+        run: |
+          git clone https://github.com/openvswitch/ovs.git -b v3.2.0 --depth 1
+
       - name: run test
         run: |
           sudo make -C ./ovs check-afxdp TESTSUITEFLAGS='1 3'
