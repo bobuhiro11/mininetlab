@@ -50,6 +50,21 @@ jobs:
           sudo ldconfig
           popd
 
+          # install bpftool (needed to populate devmap entries with an
+          # attached xdp program, e.g. mininetlab/xdp_mirror.py)
+          #
+          # VMLINUX_BTF= disables bpftool's BPF-skeleton (CO-RE) features,
+          # which otherwise generate vmlinux.h from the running kernel's
+          # /sys/kernel/btf/vmlinux. This bpf-next checkout is pinned to
+          # v5.15, and its bundled libbpf/bpftool cannot parse the BTF
+          # produced by the newer kernels used by GitHub-hosted runners,
+          # which fails the build with "failed to load BTF from
+          # /sys/kernel/btf/vmlinux: Invalid argument". We don't need
+          # those skeleton-based subcommands here, only `bpftool` itself.
+          pushd ./bpf-next/tools/bpf/bpftool
+          sudo make install VMLINUX_BTF=
+          popd
+
           # install DPDK.
           wget https://fast.dpdk.org/rel/dpdk-22.11.1.tar.xz
           tar xf dpdk-22.11.1.tar.xz
